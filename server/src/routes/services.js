@@ -1,0 +1,7 @@
+import {Router} from 'express';import mongoose from 'mongoose';import Service from '../models/Service.js';import Booking from '../models/Booking.js';
+const router=Router();
+router.get('/',async(_req,res,next)=>{try{res.json(await Service.find({active:true}).sort({name:1}));}catch(e){next(e);}});
+router.post('/',async(req,res,next)=>{try{const{name,description,duration,price}=req.body;if(!name?.trim()||!description?.trim()||!Number(duration)||price===undefined||Number(price)<0)return res.status(400).json({message:'Name, description, duration, and a valid price are required.'});res.status(201).json(await Service.create({...req.body,duration:Number(duration),price:Number(price)}));}catch(e){next(e);}});
+router.patch('/:id',async(req,res,next)=>{try{if(!mongoose.isValidObjectId(req.params.id))return res.status(400).json({message:'Invalid service id.'});const item=await Service.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true});if(!item)return res.status(404).json({message:'Service not found.'});res.json(item);}catch(e){next(e);}});
+router.delete('/:id',async(req,res,next)=>{try{if(!mongoose.isValidObjectId(req.params.id))return res.status(400).json({message:'Invalid service id.'});const item=await Service.findByIdAndDelete(req.params.id);if(!item)return res.status(404).json({message:'Service not found.'});await Booking.updateMany({service:item._id,status:'confirmed'},{status:'cancelled'});res.json({message:'Service removed.'});}catch(e){next(e);}});
+export default router;
